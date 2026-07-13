@@ -1,0 +1,19 @@
+# secrets / local config
+.env
+.env.*
+!.env.example
+
+# SQLite move log (persisted in a Docker volume at runtime)
+*.db
+*.db-shm
+*.db-wal
+/data/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# misc
+*.log
+.DS_Store

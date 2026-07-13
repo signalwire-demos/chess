@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaderboard — SignalWire Chess</title>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('chessTheme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'));</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sw-blue:#044EF4; --sw-fuchsia:#F72A72; --sw-purple:#601BE6; --sw-turq:#40E0D0; --sw-gold:#FFD700;
+  --page:#0e0e18; --surface:#181a28; --raised:#222436;
+  --fg:#f0f0f4; --fg2:#e8e8ec; --muted:#a0a0aa; --subtle:#73737e; --headings:#f0f0f4;
+  --border:rgba(255,255,255,.12); --border-strong:rgba(255,255,255,.15);
+  --success:#22c55e; --danger:#ef4444;
+  --e1:0 1px 2px rgba(0,0,0,.45); --e2:0 4px 16px rgba(0,0,0,.5); --e3:0 12px 34px rgba(0,0,0,.6);
+  --glow:0 0 26px rgba(247,42,114,.28);
+  --heading:'Instrument Sans',sans-serif; --sans:'Lexend',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+[data-theme="light"]{
+  --page:#FAFBFC; --surface:#F3F4F6; --raised:#E8EAF0;
+  --fg:#1A1A18; --fg2:#3A3A38; --muted:#737371; --subtle:#A8A8A6; --headings:#070c2d;
+  --border:rgba(0,0,0,.10); --border-strong:rgba(0,0,0,.18);
+  --success:#16a34a; --danger:#dc2626;
+  --e1:0 1px 2px rgba(60,64,67,.14); --e2:0 4px 16px rgba(0,0,0,.08); --e3:0 10px 28px rgba(0,0,0,.12);
+  --glow:0 0 26px rgba(247,42,114,.18);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+h1,.brand{font-family:var(--heading);letter-spacing:-.01em}
+.material-symbols-outlined{vertical-align:middle;line-height:1}
+
+.appbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;
+  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:10px 20px}
+.brand{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:600}
+.brand .logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--sw-blue),var(--sw-purple) 55%,var(--sw-fuchsia));color:#fff;font-size:19px}
+.appbar .spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;font-weight:500;
+  border:0;border-radius:999px;padding:0 18px;height:40px;cursor:pointer;text-decoration:none;transition:.15s}
+.btn .material-symbols-outlined{font-size:19px}
+.btn-filled{background:var(--sw-blue);color:#fff} .btn-filled:hover{background:#0342cf;box-shadow:var(--glow)}
+.btn-text{background:transparent;color:var(--fg2)} .btn-text:hover{background:rgba(127,127,140,.14)}
+.iconbtn{width:40px;height:40px;border-radius:50%;display:inline-grid;place-items:center;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.iconbtn:hover{background:rgba(127,127,140,.14);color:var(--fg)}
+
+.wrap{max-width:940px;margin:0 auto;padding:34px 20px 80px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-size:clamp(2rem,4.5vw,3rem);font-weight:700;margin:0;color:var(--headings)}
+.sub{color:var(--muted);font-size:15px;margin:8px 0 0;max-width:62ch;line-height:1.6}
+.sub b{color:var(--sw-fuchsia);font-weight:600}
+.updated{color:var(--muted);font-size:12px;font-family:var(--mono);display:flex;align-items:center;gap:6px}
+.updated .material-symbols-outlined{font-size:16px}
+
+/* podium */
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0 22px;align-items:end}
+@media(max-width:640px){.podium{grid-template-columns:1fr;gap:12px}}
+.pod{background:var(--raised);border:1px solid var(--border);border-radius:18px;box-shadow:var(--e1);
+  padding:22px 18px 20px;text-align:center;position:relative}
+.pod.p1{transform:translateY(-10px);box-shadow:var(--e2),var(--glow);border-color:color-mix(in srgb,var(--sw-fuchsia) 40%,transparent)}
+.pod .medal{font-size:30px;line-height:1;margin-bottom:4px}
+.pod .av{width:64px;height:64px;border-radius:50%;margin:4px auto 10px;display:grid;place-items:center;
+  font-size:26px;font-weight:600;color:#fff;box-shadow:var(--e1)}
+.pod .nm{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod .pts{font-family:var(--heading);font-size:30px;font-weight:700;color:var(--sw-fuchsia);margin-top:6px;font-variant-numeric:tabular-nums}
+.pod .pts small{font-size:13px;color:var(--muted);font-weight:400}
+.pod .rec{color:var(--muted);font-size:13px;margin-top:2px;font-family:var(--mono)}
+
+/* Sigmond / the house */
+.housecard{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:24px 0 4px;padding:20px 24px;border-radius:20px;
+  background:linear-gradient(120deg,#044EF4,#601BE6 55%,#F72A72);color:#fff;box-shadow:var(--e2),var(--glow)}
+.housecard .house-av{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:30px;flex:none}
+.housecard .house-info{flex:1;min-width:170px}
+.housecard .house-name{font-family:var(--heading);font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.housecard .ai-badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;background:rgba(255,255,255,.22);padding:3px 9px;border-radius:999px}
+.housecard .house-sub{opacity:.85;font-size:13px;margin-top:3px}
+.housecard .house-stats{display:flex;gap:24px}
+.housecard .hs{text-align:center}
+.housecard .hsv{font-family:var(--heading);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.housecard .hsl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;opacity:.85;font-family:var(--mono);margin-top:3px}
+@media(max-width:560px){.housecard .house-stats{gap:16px;width:100%;justify-content:space-between}}
+
+/* table */
+.tablecard{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--e1);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;color:var(--muted);font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;
+  letter-spacing:.08em;padding:14px 16px;border-bottom:2px solid color-mix(in srgb,var(--sw-fuchsia) 55%,transparent);white-space:nowrap}
+tbody td{padding:13px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--raised)}
+tbody tr.me{background:color-mix(in srgb,var(--sw-fuchsia) 8%,transparent);box-shadow:inset 3px 0 0 var(--sw-fuchsia)}
+.rank{font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted);width:44px}
+.rank .medal{font-size:18px}
+.player{display:flex;align-items:center;gap:11px}
+.player .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;color:#fff;flex:none}
+.player .nm{font-weight:600} .player .you{font-size:11px;color:var(--sw-fuchsia);font-weight:600;margin-left:2px;font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+.pts-cell{font-weight:700;color:var(--sw-fuchsia);font-family:var(--heading)}
+.rec .w{color:var(--success);font-weight:600}.rec .l{color:var(--danger)}.rec .d{color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;min-width:72px;margin-top:5px}
+.bar span{display:block;height:100%;background:var(--sw-fuchsia);border-radius:3px}
+.wpct{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.badge{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid;letter-spacing:.03em}
+.b-none{color:var(--muted);border-color:var(--border)}
+.b-beginner{color:var(--sw-fuchsia);border-color:color-mix(in srgb,var(--sw-fuchsia) 28%,transparent)}
+.b-easy{color:var(--sw-fuchsia);border-color:color-mix(in srgb,var(--sw-fuchsia) 42%,transparent)}
+.b-medium{color:var(--sw-fuchsia);border-color:color-mix(in srgb,var(--sw-fuchsia) 60%,transparent)}
+.b-hard{color:var(--sw-fuchsia);border-color:var(--sw-fuchsia)}
+.b-master{color:#fff;background:var(--sw-fuchsia);border-color:var(--sw-fuchsia)}
+
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.empty .material-symbols-outlined{font-size:52px;color:var(--subtle);margin-bottom:12px}
+.empty h3{margin:0 0 6px;font-family:var(--heading);font-weight:600;font-size:20px;color:var(--fg)}
+.foot{color:var(--muted);font-size:12px;font-family:var(--mono);margin-top:20px;text-align:center;line-height:1.7}
+
+/* scoring grid */
+.scorecard{margin-top:28px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--e1);padding:20px 22px}
+.scorecard h3{margin:0 0 4px;font-family:var(--heading);font-size:16px;font-weight:700;color:var(--fg)}
+.scorecard .lead{color:var(--muted);font-size:13px;margin:0 0 14px}
+.scoregrid{display:grid;gap:0}
+.srow{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}
+.srow:last-child{border-bottom:0}
+.sr-label{font-size:14px}.sr-label em{color:var(--muted);font-style:normal;font-size:12.5px}
+.sr-pts{font-family:var(--mono);font-size:13.5px;font-weight:600;color:var(--sw-fuchsia);white-space:nowrap}
+.sr-pts.muted{color:var(--muted)}
+.sweights{margin-top:13px;font-family:var(--mono);font-size:12px;color:var(--muted);border-top:1px dashed var(--border);padding-top:12px}
+.sexamples{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:16px}
+.ex{background:var(--raised);border:1px solid var(--border);border-radius:12px;padding:13px 12px;text-align:center}
+.ex b{display:block;font-family:var(--heading);font-size:26px;font-weight:700;color:var(--sw-fuchsia);line-height:1}
+.ex span{font-size:11.5px;color:var(--muted);display:block;margin-top:5px;line-height:1.35}
+
+/* ---- mobile ---- */
+@media(max-width:600px){
+  .appbar{flex-wrap:wrap;gap:6px;padding:9px 12px}
+  .brand{font-size:16px}
+  .btn{padding:0 12px;height:38px;font-size:13.5px}
+  .btn .lbl{display:none}
+  .wrap{padding:22px 12px 60px}
+  h1{font-size:26px}
+  .head{gap:8px}
+  .housecard{padding:16px;gap:14px}
+  .housecard .house-stats{width:100%;justify-content:space-between;gap:12px}
+  .tablecard{overflow-x:auto}          /* wide table scrolls inside its card */
+  table{min-width:540px}
+  thead th,tbody td{padding:11px 12px}
+  .scorecard{padding:16px}
+  .sexamples{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="brand"><span class="logo">♞</span> SignalWire Chess</div>
+  <div class="spacer"></div>
+  <a class="btn btn-text" href="how-it-works.html" title="How it works"><span class="material-symbols-outlined">help</span> <span class="lbl">How it works</span></a>
+  <button class="iconbtn" id="themeBtn" title="Toggle theme"><span class="material-symbols-outlined">light_mode</span></button>
+  <a class="btn btn-filled" href="index.html"><span class="material-symbols-outlined">play_arrow</span> Play</a>
+</div>
+
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>🏆 Leaderboard</h1>
+      <p class="sub">You score points just for playing — and far more for beating <b>Sigmond</b> quickly at a tougher level. Draws count too.</p>
+    </div>
+    <div class="updated"><span class="material-symbols-outlined">sync</span><span id="updated">loading…</span></div>
+  </div>
+
+  <div id="sigmond-card" class="housecard" style="display:none">
+    <div class="house-av">♞</div>
+    <div class="house-info">
+      <div class="house-name">Sigmond <span class="ai-badge">THE AI · THE HOUSE</span></div>
+      <div class="house-sub">Record across every challenger — beat him to climb the board</div>
+    </div>
+    <div class="house-stats">
+      <div class="hs"><div class="hsv" id="sig-w">0</div><div class="hsl">Wins</div></div>
+      <div class="hs"><div class="hsv" id="sig-l">0</div><div class="hsl">Losses</div></div>
+      <div class="hs"><div class="hsv" id="sig-d">0</div><div class="hsl">Draws</div></div>
+      <div class="hs"><div class="hsv" id="sig-wp">—</div><div class="hsl">Win rate</div></div>
+    </div>
+  </div>
+
+  <div id="podium" class="podium" style="display:none"></div>
+
+  <div class="tablecard">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Player</th><th>Points</th><th>Record</th><th>Win rate</th><th>Best win</th><th class="num">Games</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">
+      <div class="material-symbols-outlined">emoji_events</div>
+      <h3>No games finished yet</h3>
+      <div>Play a game against Sigmond and win to claim the top spot.</div>
+    </div>
+  </div>
+
+  <div class="scorecard">
+    <h3>How points work</h3>
+    <p class="lead">Every finished game scores — winning fast against a tougher Sigmond scores most.</p>
+    <div class="scoregrid">
+      <div class="srow"><span class="sr-label">Finish a game <em>— win or lose (participation)</em></span><span class="sr-pts">+5</span></div>
+      <div class="srow"><span class="sr-label">Win</span><span class="sr-pts">+ difficulty × 10</span></div>
+      <div class="srow"><span class="sr-label">Speed bonus <em>— wins only; quicker mate = more</em></span><span class="sr-pts">+ difficulty × 40 ÷ moves</span></div>
+      <div class="srow"><span class="sr-label">Draw</span><span class="sr-pts">+ difficulty × 3</span></div>
+      <div class="srow"><span class="sr-label">Loss</span><span class="sr-pts muted">+5 only</span></div>
+    </div>
+    <div class="sweights">Difficulty weight — Beginner 1 · Easy 2 · Medium 3 · Hard 5 · Master 8</div>
+    <div class="sexamples">
+      <div class="ex"><b>117</b><span>Quick mate on Master<br>(10 moves)</span></div>
+      <div class="ex"><b>89</b><span>Slow win on Master<br>(90 moves)</span></div>
+      <div class="ex"><b>39</b><span>Win on Medium<br>(30 moves)</span></div>
+      <div class="ex"><b>29</b><span>Draw on Master</span></div>
+      <div class="ex"><b>5</b><span>A game played<br>&amp; lost</span></div>
+    </div>
+  </div>
+
+  <div class="foot">Auto-refreshes every 15 seconds</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ME = (localStorage.getItem('chessPlayerName') || '').trim();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initial = n => (n && n[0] ? n[0] : '?').toUpperCase();
+// avatar fill stays on-brand: blue or purple picked deterministically (both brand colors)
+function avFill(n){ let h=0; for(const c of (n||'')) h=(h*31+c.charCodeAt(0))>>>0;
+  return h%2 ? 'linear-gradient(135deg,#601BE6,#8a3df0)' : 'linear-gradient(135deg,#044EF4,#2f6bff)'; }
+function badge(d){ return d ? `<span class="badge b-${d}">${d[0].toUpperCase()+d.slice(1)}</span>` : '<span class="badge b-none">—</span>'; }
+const medals = {1:'🥇',2:'🥈',3:'🥉'};
+
+async function load(){
+  let data;
+  try { data = await (await fetch('/chess/leaderboard')).json(); }
+  catch(e){ $('updated').textContent = 'offline'; return; }
+  const players = data.players || [];
+  $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+  // Sigmond (the house)
+  const sig = data.sigmond;
+  if (sig) {
+    $('sigmond-card').style.display = 'flex';
+    $('sig-w').textContent = sig.wins;
+    $('sig-l').textContent = sig.losses;
+    $('sig-d').textContent = sig.draws;
+    $('sig-wp').textContent = sig.games ? sig.win_pct + '%' : '—';
+  }
+
+  const pod = $('podium');
+  if(players.length){
+    pod.style.display = 'grid';
+    pod.innerHTML = [1,0,2].filter(i => players[i]).map(i => {
+      const p = players[i];
+      return `<div class="pod p${p.rank}">
+        <div class="medal">${medals[p.rank]||''}</div>
+        <div class="av" style="background:${avFill(p.name)}">${initial(p.name)}</div>
+        <div class="nm">${esc(p.name)}</div>
+        <div class="pts">${p.points}<small> pts</small></div>
+        <div class="rec">${p.wins}W · ${p.losses}L · ${p.draws}D</div>
+      </div>`;
+    }).join('');
+  } else pod.style.display = 'none';
+
+  const rows = $('rows'), empty = $('empty');
+  if(!players.length){ rows.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  rows.innerHTML = players.map(p => {
+    const isMe = ME && p.name.toLowerCase() === ME.toLowerCase();
+    const rankCell = medals[p.rank] ? `<span class="medal">${medals[p.rank]}</span>` : p.rank;
+    return `<tr class="${isMe?'me':''}">
+      <td class="rank">${rankCell}</td>
+      <td><div class="player">
+        <span class="av" style="background:${avFill(p.name)}">${initial(p.name)}</span>
+        <span class="nm">${esc(p.name)}${isMe?'<span class="you"> (you)</span>':''}</span>
+      </div></td>
+      <td class="pts-cell num">${p.points}</td>
+      <td class="rec num"><span class="w">${p.wins}</span> – <span class="l">${p.losses}</span> – <span class="d">${p.draws}</span></td>
+      <td><div class="wpct">${p.win_pct}%</div><div class="bar"><span style="width:${p.win_pct}%"></span></div></td>
+      <td>${badge(p.best_win)}</td>
+      <td class="num">${p.games}</td>
+    </tr>`;
+  }).join('');
+}
+load();
+setInterval(load, 15000);
+
+// theme toggle
+(function(){
+  const root=document.documentElement;
+  function sync(){root.__t=root.getAttribute('data-theme');$('themeBtn').querySelector('.material-symbols-outlined').textContent=(root.__t==='dark'?'light_mode':'dark_mode');}
+  $('themeBtn').addEventListener('click',()=>{const n=(root.getAttribute('data-theme')==='dark')?'light':'dark';root.setAttribute('data-theme',n);localStorage.setItem('chessTheme',n);sync();});
+  sync();
+})();
+</script>
+</body>
+</html>

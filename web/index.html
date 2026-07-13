@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignalWire Chess — Play Sigmond</title>
+<meta property="og:title" content="SignalWire Chess — Play the AI">
+<meta property="og:description" content="Play live chess against Sigmond, the SignalWire AI — by voice or by moving the pieces yourself, over real-time video.">
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('chessTheme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'));</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+<style>
+/* Bundled chess piece glyphs (U+2654-265F), subset from DejaVu Sans (permissive
+   license). Self-hosted so pieces never depend on the OS symbol/emoji font. */
+@font-face{
+  font-family:"ChessPieces";
+  src:url("chess-pieces.woff") format("woff");
+  font-display:swap;
+  unicode-range:U+2654-265F;
+}
+:root{
+  --sw-blue:#044EF4; --sw-fuchsia:#F72A72; --sw-purple:#601BE6; --sw-turq:#40E0D0; --sw-gold:#FFD700;
+  --page:#0e0e18; --surface:#181a28; --raised:#222436;
+  --fg:#f0f0f4; --fg2:#e8e8ec; --muted:#a0a0aa; --subtle:#73737e; --headings:#f0f0f4;
+  --border:rgba(255,255,255,.12); --border-strong:rgba(255,255,255,.15);
+  --input-bg:#2a2a2e;
+  --primary:#044EF4; --primary-h:#0342cf; --on-primary:#fff;
+  --danger:#ef4444; --success:#22c55e; --warning:#FFD700;
+  --tonal-bg:rgba(4,78,244,.16); --tonal-fg:#8fb4ff;
+  --tray-bg:#c9d1e0;              /* light shade so captured pieces stay legible in dark mode */
+  --link:var(--sw-turq); --link-h:var(--sw-fuchsia);
+  --e1:0 1px 2px rgba(0,0,0,.45); --e2:0 4px 16px rgba(0,0,0,.5); --e3:0 12px 34px rgba(0,0,0,.6);
+  --glow:0 0 26px rgba(247,42,114,.22);
+  --lsq:#c9d1e0; --dsq:#42517a; --sel:var(--sw-blue); --last:rgba(247,42,114,.42);
+  --dot:rgba(4,78,244,.55); --check:#ef4444;
+  --pc-w:#ffffff; --pc-b:#0f1320;
+  --heading:'Instrument Sans',sans-serif; --sans:'Lexend',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+[data-theme="light"]{
+  --page:#FAFBFC; --surface:#F3F4F6; --raised:#E8EAF0;
+  --fg:#1A1A18; --fg2:#3A3A38; --muted:#737371; --subtle:#A8A8A6; --headings:#070c2d;
+  --border:rgba(0,0,0,.10); --border-strong:rgba(0,0,0,.18);
+  --input-bg:#ffffff;
+  --danger:#dc2626; --success:#16a34a; --warning:#a16207;
+  --tonal-bg:rgba(4,78,244,.10); --tonal-fg:#0342cf;
+  --tray-bg:var(--raised);
+  --link:var(--sw-blue); --link-h:var(--sw-fuchsia);
+  --e1:0 1px 2px rgba(60,64,67,.14); --e2:0 4px 16px rgba(0,0,0,.08); --e3:0 10px 28px rgba(0,0,0,.12);
+  --glow:0 0 24px rgba(247,42,114,.14);
+  --lsq:#e7eaf2; --dsq:#8497c4; --last:rgba(247,42,114,.30);
+  --dot:rgba(4,78,244,.42); --check:#dc2626; --pc-b:#14182a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--fg);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,.brand{font-family:var(--heading);letter-spacing:-.01em}
+.material-symbols-outlined{font-variation-settings:'opsz' 20;vertical-align:middle;font-size:20px;line-height:1}
+
+/* app bar */
+.appbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;
+  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:10px 20px}
+.brand{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:600}
+.brand .logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--sw-blue),var(--sw-purple) 55%,var(--sw-fuchsia));color:#fff;font-size:19px}
+.brand small{color:var(--muted);font-weight:400;font-size:13px}
+.appbar .spacer{flex:1}
+.namechip{display:inline-flex;align-items:center;gap:8px;background:var(--raised);border:1px solid var(--border);
+  border-radius:999px;padding:5px 6px 5px 12px;font-size:13.5px;color:var(--fg);cursor:pointer}
+.namechip:hover{border-color:var(--border-strong)}
+.namechip .avatar{width:26px;height:26px;border-radius:50%;background:var(--sw-blue);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600}
+.namechip .material-symbols-outlined{font-size:18px;color:var(--muted)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--sans);
+  font-size:14px;font-weight:500;letter-spacing:.1px;border:0;border-radius:999px;padding:0 22px;height:40px;
+  cursor:pointer;transition:.15s ease;white-space:nowrap}
+.btn .material-symbols-outlined{font-size:19px}
+.btn-filled{background:var(--primary);color:var(--on-primary)}
+.btn-filled:hover{background:var(--primary-h);box-shadow:var(--glow)}
+.btn-tonal{background:var(--tonal-bg);color:var(--tonal-fg)}
+.btn-tonal:hover{filter:brightness(1.1)}
+.btn-outline{background:transparent;color:var(--fg);border:1px solid var(--border-strong)}
+.btn-outline:hover{background:rgba(127,127,140,.12)}
+.btn-text{background:transparent;color:var(--fg2)}
+.btn-text:hover{background:rgba(127,127,140,.12)}
+.btn-danger{color:var(--danger)} .btn-danger.btn-outline{border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.iconbtn{width:40px;height:40px;border-radius:50%;display:inline-grid;place-items:center;border:0;background:transparent;
+  color:var(--muted);cursor:pointer}
+.iconbtn:hover{background:rgba(127,127,140,.14);color:var(--fg)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 70px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:7px 13px;font-size:13px}
+.chip .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:500;font-family:var(--mono)}
+.chip .v{font-weight:500}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--subtle)}
+.chip.live .dot{background:var(--success);box-shadow:0 0 0 3px color-mix(in srgb,var(--success) 25%,transparent)}
+.layout{display:grid;grid-template-columns:minmax(320px,1fr) 380px;gap:22px;align-items:start}
+.sidecol{display:flex;flex-direction:column;gap:18px}
+@media(max-width:900px){
+  /* stack in one column and put the Live Session card (Connect & Play) above the board */
+  .layout{display:flex;flex-direction:column;gap:18px}
+  .sidecol{display:contents}          /* let its cards join the layout flow so they can reorder */
+  .live-area{order:1}
+  .boardcard{order:2}
+  .hist-area{order:3}
+  .log-area{order:4}
+}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--e1);overflow:hidden}
+.card .hd{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border)}
+.card .hd h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.02em}
+.card .hd .material-symbols-outlined{color:var(--sw-fuchsia);font-size:19px}
+.card .bd{padding:16px 18px}
+
+/* board */
+.boardcard .bd{padding:16px}
+.tray{display:flex;flex-wrap:wrap;gap:1px;min-height:36px;align-items:center;padding:6px 10px;
+  background:var(--tray-bg);border:1px solid var(--border);border-radius:10px;font-size:23px;line-height:1}
+.tray .lbl{color:#4a5b86;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-right:8px;font-family:var(--mono)}
+.tray .cap.w{color:#f6f8ff;text-shadow:0 0 1px #000,0 1px 1px rgba(0,0,0,.5)}
+.tray .cap.b{color:#0f1320;text-shadow:0 0 1px rgba(255,255,255,.35)}
+.board{width:100%;aspect-ratio:1/1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));
+  margin:10px 0;border-radius:12px;overflow:hidden;box-shadow:var(--e2);user-select:none;touch-action:manipulation}
+/* minmax(0,1fr) + min-width/height:0 keep every cell exactly 1/8 regardless of its
+   contents, so squares with a piece are the same size as empty ones and the board
+   doesn't reflow as pieces move. The glyph is sized to the cell (cqmin) and clipped. */
+.sq{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden;
+  container-type:size;font-size:min(8vw,50px);cursor:default}
+.sq .pc{font-size:78cqmin;line-height:1}
+.sq.light{background:var(--lsq)} .sq.dark{background:var(--dsq)}
+.sq.playable{cursor:pointer}
+.sq.sel{box-shadow:inset 0 0 0 4px var(--sel)}
+.sq.last::after{content:"";position:absolute;inset:0;background:var(--last);pointer-events:none}
+.sq.check{box-shadow:inset 0 0 0 4px var(--check);border-radius:2px}
+.sq .pc{position:relative;z-index:2}
+.sq .pc.w{color:var(--pc-w);text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 2px rgba(0,0,0,.4)}
+.sq .pc.b{color:var(--pc-b);text-shadow:0 1px 1px rgba(255,255,255,.22)}
+.sq .dot{position:absolute;z-index:1;width:30%;height:30%;border-radius:50%;background:var(--dot)}
+.sq .ring{position:absolute;z-index:1;inset:7%;border-radius:50%;border:5px solid var(--dot)}
+/* framed board: a padding gutter holds coordinates on all four sides. The board
+   fills the content box (width-driven, no circular grid sizing), and the coord
+   strips are absolutely positioned in the gutters, aligned to the board edges. */
+.boardframe{--gut:22px;position:relative;margin:10px 0;padding:var(--gut);
+  background:var(--raised);border:1px solid var(--border);border-radius:14px;box-shadow:var(--e2)}
+.boardframe .board{width:100%;aspect-ratio:1/1;margin:0;box-shadow:none;border-radius:6px}
+/* Learn-mode eval bar (left of board) + best-move arrow overlay */
+.boardrow{display:flex;gap:10px;align-items:stretch;margin:10px 0}
+.boardrow .boardframe{flex:1;margin:0}
+.evalbar{width:16px;flex:none;position:relative;border-radius:8px;overflow:hidden;background:#26303b;border:1px solid var(--border);display:none}
+.evalfill{position:absolute;left:0;right:0;bottom:0;height:50%;background:#eef2f8;transition:height .45s ease}
+.arrows{position:absolute;inset:var(--gut);pointer-events:none;z-index:5}
+.arrows line{stroke:var(--sw-turq);stroke-width:.26;stroke-linecap:round;opacity:.9}
+.arrows .ah{fill:var(--sw-turq);opacity:.9}
+.coord-row{position:absolute;left:var(--gut);right:var(--gut);height:var(--gut);display:grid;grid-template-columns:repeat(8,1fr)}
+.coord-col{position:absolute;top:var(--gut);bottom:var(--gut);width:var(--gut);display:grid;grid-template-rows:repeat(8,1fr)}
+#files-top{top:0} #files-bottom{bottom:0}
+#ranks-left{left:0} #ranks-right{right:0}
+.coord-row span,.coord-col span{display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase}
+.hint{color:var(--muted);font-size:12.5px;margin-top:8px}
+.banner{margin:2px 0 12px;padding:12px 16px;border-radius:12px;font-weight:500;font-size:14px;display:none;align-items:center;gap:10px}
+.banner.show{display:flex}
+.banner.check{background:color-mix(in srgb,var(--sw-gold) 16%,transparent);color:var(--sw-gold);border:1px solid color-mix(in srgb,var(--sw-gold) 30%,transparent)}
+.banner.over{background:var(--tonal-bg);color:var(--tonal-fg);border:1px solid var(--border)}
+.banner.reconnect{background:color-mix(in srgb,var(--sw-gold) 16%,transparent);color:var(--sw-gold);border:1px solid color-mix(in srgb,var(--sw-gold) 32%,transparent)}
+.banner.reconnect .material-symbols-outlined{color:var(--sw-gold);font-size:19px}
+.spin{display:inline-flex;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* side */
+#video-container{position:relative;width:100%;aspect-ratio:16/9;background:#0b0b14;border-radius:12px;overflow:hidden;margin-bottom:14px;display:none}
+#video-container video{width:100%;height:100%;object-fit:cover}
+.move-gif{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0b0b14;opacity:0;transition:opacity .35s ease;pointer-events:none;z-index:3}
+.move-gif.show{opacity:1}
+.controls{display:flex;flex-wrap:wrap;gap:10px}
+.field{margin-top:14px}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-bottom:5px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.selrow{display:flex;gap:10px}
+select{flex:1;font-family:var(--sans);font-size:14px;background:var(--input-bg);color:var(--fg);
+  border:1px solid var(--border-strong);border-radius:10px;padding:11px 12px;cursor:pointer}
+select:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(4,78,244,.3)}
+.segmented{display:inline-flex;border:1px solid var(--border-strong);border-radius:999px;overflow:hidden;background:var(--input-bg)}
+.segmented .seg{border:0;background:transparent;color:var(--muted);font-family:var(--sans);font-size:13.5px;font-weight:500;padding:9px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.segmented .seg .material-symbols-outlined{font-size:18px}
+.segmented .seg.active{background:var(--sw-blue);color:#fff}
+.segmented .seg:not(.active):hover{color:var(--fg)}
+.modehint{color:var(--muted);font-size:12px;margin-top:7px}
+.history{font-family:var(--mono);font-size:12.5px;max-height:210px;overflow:auto}
+.history .row{display:flex;gap:10px;padding:3px 0;border-bottom:1px solid var(--border)}
+.history .n{color:var(--muted);min-width:2.5ch;text-align:right}
+.history .w{min-width:6ch}
+.log{font-family:var(--mono);font-size:11.5px;max-height:150px;overflow:auto;color:var(--muted)}
+.log .t{color:var(--sw-turq)}
+
+/* name dialog */
+.scrim{position:fixed;inset:0;background:rgba(6,6,14,.66);display:none;place-items:center;z-index:300;padding:20px}
+.scrim.show{display:grid}
+.dialog{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--e3);max-width:400px;width:100%;padding:26px 26px 20px}
+.dialog .di{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--sw-blue),var(--sw-purple));color:#fff;display:grid;place-items:center;margin-bottom:14px}
+.dialog .di .material-symbols-outlined{font-size:28px}
+.dialog h3{margin:0 0 6px;font-family:var(--heading);font-size:22px;font-weight:600;color:var(--headings)}
+.dialog p{margin:0 0 18px;color:var(--muted);font-size:14px}
+.tf input{width:100%;font-family:var(--sans);font-size:16px;padding:14px;border:1px solid var(--border-strong);
+  border-radius:10px;background:var(--input-bg);color:var(--fg)}
+.tf input:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(4,78,244,.3)}
+.dialog .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+
+.board,.tray,.card{max-width:100%}
+/* chess pieces: force monochrome TEXT rendering with a symbol-capable font so they
+   never fall back to emoji (which resize squares / look inconsistent on mobile) */
+.sq .pc,.tray .cap{font-family:"ChessPieces","Noto Sans Symbols 2","Segoe UI Symbol","Apple Symbols","DejaVu Sans","Symbola",sans-serif;font-variant-emoji:text}
+
+/* ---- mobile ---- */
+@media(max-width:600px){
+  .appbar{flex-wrap:wrap;gap:6px;padding:9px 12px}
+  .brand{font-size:16px;gap:8px;min-width:0}
+  .brand small{display:none}
+  .btn{padding:0 12px;height:38px;font-size:13.5px}
+  .btn .lbl{display:none}                 /* nav buttons become icon-only */
+  .appbar .btn-text{padding:0 10px}
+  .layout{grid-template-columns:minmax(0,1fr)}   /* single column that can shrink */
+  .layout > div{min-width:0}
+  .wrap{padding:16px 12px 56px}
+  .chips{gap:8px;margin-bottom:14px}
+  .chip{padding:6px 11px;font-size:12.5px}
+  .card .bd,.boardcard .bd{padding:12px}
+  .card .hd{padding:12px 14px}
+  .boardframe{--gut:16px}
+  .coord-row span,.coord-col span{font-size:10px}
+  .controls{gap:8px}
+  .dialog{border-radius:20px;padding:22px 20px 18px}
+}
+@media(max-width:360px){
+  .btn-filled .lbl{display:inline}        /* keep the primary CTA labeled even when tiny */
+}
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="brand"><span class="logo">♞</span> SignalWire Chess <small>· play the AI</small></div>
+  <div class="spacer"></div>
+  <a class="btn btn-text" href="leaderboard.html" title="Leaderboard"><span class="material-symbols-outlined">leaderboard</span> <span class="lbl">Leaderboard</span></a>
+  <a class="btn btn-text" href="how-it-works.html" title="How it works"><span class="material-symbols-outlined">help</span> <span class="lbl">How it works</span></a>
+  <button class="iconbtn" id="themeBtn" title="Toggle theme"><span class="material-symbols-outlined">light_mode</span></button>
+  <div class="namechip" id="nameChip" title="Change name">
+    <span class="avatar" id="nameAvatar">?</span><span id="nameLabel">Guest</span>
+    <span class="material-symbols-outlined">edit</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="chips">
+    <div class="chip" id="connChip"><span class="dot"></span><span class="k">Call</span><span class="v" id="conn">idle</span></div>
+    <div class="chip"><span class="k">Turn</span><span class="v" id="turn">—</span></div>
+    <div class="chip"><span class="k">Level</span><span class="v" id="level">medium</span></div>
+    <div class="chip"><span class="k">Material</span><span class="v" id="material">even</span></div>
+    <div class="chip" id="evalChip" style="display:none"><span class="k">Eval</span><span class="v" id="evalVal">—</span></div>
+  </div>
+
+  <div class="layout">
+    <div class="card boardcard">
+      <div class="hd"><span class="material-symbols-outlined">grid_on</span><h2>BOARD</h2></div>
+      <div class="bd">
+        <div class="banner reconnect" id="reconnectBanner"><span class="material-symbols-outlined spin">autorenew</span><span id="reconnectText">Reconnecting…</span></div>
+        <div class="banner" id="banner"></div>
+        <div class="tray" id="tray-top"><span class="lbl">Captured</span></div>
+        <div class="boardrow">
+          <div class="evalbar" id="evalbar"><div class="evalfill" id="evalfill"></div></div>
+          <div class="boardframe">
+            <div class="coord-row" id="files-top"></div>
+            <div class="coord-col" id="ranks-left"></div>
+            <div class="board" id="board"></div>
+            <div class="coord-col" id="ranks-right"></div>
+            <div class="coord-row" id="files-bottom"></div>
+            <svg class="arrows" id="arrows" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+        <div class="tray" id="tray-bottom"><span class="lbl">Captured</span></div>
+        <div class="hint">Click one of your pieces to see its legal moves, then a highlighted square — or just say the move out loud.</div>
+      </div>
+    </div>
+
+    <div class="sidecol">
+      <div class="card live-area">
+        <div class="hd"><span class="material-symbols-outlined">videocam</span><h2>LIVE SESSION</h2></div>
+        <div class="bd">
+          <div id="video-container"></div>
+          <div class="controls">
+            <button id="connectBtn" class="btn btn-filled"><span class="material-symbols-outlined">mic</span> Connect &amp; Play</button>
+            <button id="hangupBtn" class="btn btn-outline btn-danger" style="display:none"><span class="material-symbols-outlined">call_end</span> Hang up</button>
+            <button id="muteBtn" class="iconbtn" style="display:none" title="Mute"><span class="material-symbols-outlined">mic</span></button>
+          </div>
+          <div class="controls" style="margin-top:12px">
+            <button id="newBtn" class="btn btn-tonal" disabled><span class="material-symbols-outlined">refresh</span> New game</button>
+            <button id="resignBtn" class="btn btn-text btn-danger" disabled><span class="material-symbols-outlined">flag</span> Resign</button>
+          </div>
+          <div class="field">
+            <label>Mode</label>
+            <div class="segmented" id="modeToggle">
+              <button type="button" class="seg active" data-mode="game"><span class="material-symbols-outlined">sports_esports</span> Game</button>
+              <button type="button" class="seg" data-mode="learn"><span class="material-symbols-outlined">school</span> Learn</button>
+            </div>
+            <div class="modehint" id="modeHint">Play a normal game against Sigmond.</div>
+          </div>
+          <div class="field">
+            <div class="selrow">
+              <div style="flex:1"><label>Difficulty</label>
+                <select id="difficulty">
+                  <option value="beginner">Beginner</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="hard">Hard</option>
+                  <option value="master">Master</option>
+                </select>
+              </div>
+              <div style="flex:1"><label>Play as</label>
+                <select id="color">
+                  <option value="white" selected>White</option>
+                  <option value="black">Black</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hist-area">
+        <div class="hd"><span class="material-symbols-outlined">history</span><h2>MOVE HISTORY</h2></div>
+        <div class="bd"><div class="history" id="history"><span class="hint">No moves yet.</span></div></div>
+      </div>
+
+      <div class="card log-area">
+        <div class="hd"><span class="material-symbols-outlined">terminal</span><h2>EVENT LOG</h2></div>
+        <div class="bd"><div class="log" id="log"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="nameDialog">
+  <div class="dialog">
+    <div class="di"><span class="material-symbols-outlined">person</span></div>
+    <h3>What should we call you?</h3>
+    <p>Your name goes on the leaderboard — wins against Sigmond are ranked by difficulty.</p>
+    <div class="tf"><input id="nameInput" maxlength="32" placeholder="e.g. Magnus" autocomplete="off"></div>
+    <div class="acts">
+      <button class="btn btn-text" id="nameSkip">Play as guest</button>
+      <button class="btn btn-filled" id="nameSave">Set Name</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// theme toggle (no-flash setter ran in <head>)
+(function(){
+  const root=document.documentElement;
+  function sync(){const b=document.getElementById('themeBtn');if(b)b.querySelector('.material-symbols-outlined').textContent=(root.getAttribute('data-theme')==='dark'?'light_mode':'dark_mode');}
+  document.getElementById('themeBtn').addEventListener('click',()=>{
+    const n=(root.getAttribute('data-theme')==='dark')?'light':'dark';
+    root.setAttribute('data-theme',n);localStorage.setItem('chessTheme',n);sync();
+  });
+  sync();
+})();
+</script>
+<script src="signalwire.js"></script>
+<script src="app.js?v=13"></script>
+</body>
+</html>

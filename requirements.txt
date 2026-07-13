@@ -1,0 +1,6 @@
+signalwire-sdk>=3.0.2
+python-chess>=1.11.1
+gunicorn>=23.0.0
+uvicorn>=0.34.2
+python-dotenv>=1.0.0
+Pillow>=10.0.0

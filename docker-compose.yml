@@ -1,0 +1,33 @@
+# Ephemeral test deployment of the SignalWire Chess demo (voice + interactive board).
+# Production env for SignalWire creds; distinct AGENT_NAME so it never collides
+# with other handlers; random cloudflared quick tunnel. SINGLE worker (see
+# entrypoint) so the in-memory game store is shared across voice + board paths.
+name: sigmond-chess
+
+services:
+  sigmond-chess:
+    build: .
+    container_name: sigmond-chess
+    init: true
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      - PORT=5000
+      - HOME=/tmp
+      - AGENT_NAME=chess-v1
+      - STOCKFISH_PATH=/usr/games/stockfish
+      - CHESS_DB=/data/chess.db
+    volumes:
+      - chess-data:/data          # persists the SQLite move log across rebuilds
+    ports:
+      - "127.0.0.1:5101:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+volumes:
+  chess-data:

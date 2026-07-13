@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignalWire Chess — How It Works</title>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('chessTheme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'));</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* SignalWire brand + dark theme (default) */
+  --sw-blue:#044EF4; --sw-fuchsia:#F72A72; --sw-purple:#601BE6; --sw-turq:#40E0D0; --sw-gold:#FFD700;
+  --bg:#0e0e18; --panel:#181a28; --panel2:#222436; --border:rgba(255,255,255,.12); --border2:rgba(255,255,255,.15);
+  --fg:#f0f0f4; --muted:#a0a0aa; --headings:#f0f0f4;
+  --accent:#F72A72; --accent2:#044EF4; --good:#22c55e; --warn:#FFD700; --crit:#ef4444;
+  --purple:#a98bff; --cyan:#40E0D0;
+  --font:'Lexend',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --heading:'Instrument Sans',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+[data-theme="light"]{
+  --bg:#FAFBFC; --panel:#F3F4F6; --panel2:#E8EAF0; --border:rgba(0,0,0,.10); --border2:rgba(0,0,0,.18);
+  --fg:#1A1A18; --muted:#737371; --headings:#070c2d;
+  --accent:#F72A72; --accent2:#044EF4; --good:#16a34a; --warn:#a16207; --crit:#dc2626;
+  --purple:#601BE6; --cyan:#0b8f86;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.7;font-size:15.5px}
+h1,h2,h3.sub,.brand{font-family:var(--heading)}
+.themebtn{position:fixed;top:16px;right:16px;z-index:40;width:42px;height:42px;border-radius:50%;border:1px solid var(--border);
+  background:var(--panel);color:var(--muted);cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.themebtn:hover{color:var(--fg)}
+.material-symbols-outlined{vertical-align:middle;font-size:22px;line-height:1}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px 100px}
+header.hero{padding:52px 0 26px;border-bottom:1px solid var(--border)}
+.eyebrow{color:var(--accent);font-size:12.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;margin-bottom:10px}
+h1{font-size:34px;font-weight:700;margin:0 0 10px;letter-spacing:-.02em}
+.lede{color:var(--muted);font-size:17px;max-width:70ch;margin:0}
+.meta{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap}
+.tag{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--muted)}
+.tag b{color:var(--fg);font-weight:600}
+
+nav.toc{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin:28px 0}
+nav.toc h3{margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}
+nav.toc a{color:var(--fg);text-decoration:none;font-size:14px}
+nav.toc a:hover{color:var(--accent)}
+@media(max-width:640px){nav.toc ol{columns:1}}
+
+section{padding-top:36px}
+h2{font-size:23px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em;scroll-margin-top:20px}
+h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+h3.sub{font-size:16px;font-weight:650;margin:26px 0 8px;color:var(--fg)}
+p{margin:12px 0}
+a{color:var(--accent)}
+strong{color:#fff;font-weight:640}
+ul,ol.body{margin:12px 0;padding-left:22px}
+li{margin:6px 0}
+
+code{font-family:var(--mono);font-size:.88em;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--cyan)}
+pre{background:#0b0e13;border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:16px 0;font-size:13px;line-height:1.55}
+pre code{background:none;border:0;padding:0;color:#c9d3df;font-size:13px}
+.c-kw{color:var(--purple)} .c-fn{color:var(--accent)} .c-str{color:var(--good)} .c-com{color:#6b7280;font-style:italic} .c-num{color:var(--warn)}
+.filelbl{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:16px 0 -8px;padding-left:2px}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin:18px 0}
+.card.accent{border-left:3px solid var(--accent)}
+.card.warn{border-left:3px solid var(--warn)}
+.card.good{border-left:3px solid var(--good)}
+.card h4{margin:0 0 6px;font-size:14.5px}
+
+.diagram{background:#0b0e13;border:1px solid var(--border);border-radius:12px;padding:22px;margin:20px 0;overflow-x:auto}
+.diagram pre{background:none;border:0;padding:0;margin:0;font-size:12.5px;line-height:1.5;color:#aeb9c7;white-space:pre}
+
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13.5px;display:block;overflow-x:auto}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td code{white-space:nowrap}
+
+.ref{font-size:.72em;vertical-align:super;line-height:0;color:var(--accent);text-decoration:none;font-weight:600;padding:0 1px}
+.ref:hover{text-decoration:underline}
+ol.refs{padding-left:26px}
+ol.refs li{margin:12px 0;font-size:13.5px;color:var(--muted)}
+ol.refs li a{word-break:break-word}
+ol.refs .fns{display:block;margin-top:3px;font-family:var(--mono);font-size:12px;color:#7d8794}
+.callback{scroll-margin-top:20px}
+
+.flow{display:grid;gap:2px;margin:14px 0}
+.flow .step{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 13px;font-size:13.5px}
+.flow .step b{color:var(--accent)}
+.flow .arrow{color:var(--muted);text-align:center;font-size:12px;padding:1px 0}
+
+hr{border:0;border-top:1px solid var(--border);margin:44px 0}
+footer{color:var(--muted);font-size:13px;padding-top:20px;border-top:1px solid var(--border);margin-top:40px}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--border2)}
+.pill.get{color:var(--good);border-color:rgba(63,185,80,.4)}
+.pill.post{color:var(--warn);border-color:rgba(210,153,34,.4)}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themeBtn" title="Toggle theme"><span class="material-symbols-outlined">light_mode</span></button>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Architecture Deep-Dive</div>
+  <h1>♟ SignalWire Chess — How It Works</h1>
+  <p class="lede">An interactive chess board wired to a live SignalWire AI voice agent. You play by speaking moves <em>or</em> by moving the pieces on screen, over a real-time WebRTC call — and both paths stay in sync with the AI opponent. This page explains every moving part and cites the exact SDK functions each one relies on.</p>
+  <div class="meta">
+    <span class="tag"><b>Voice + click</b> input</span>
+    <span class="tag"><b>Stockfish</b> opponent</span>
+    <span class="tag"><b>python-chess</b> rules</span>
+    <span class="tag"><b>WebRTC</b> audio/video</span>
+    <span class="tag"><b>Pillow</b> move GIFs</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#overview">System overview</a></li>
+    <li><a href="#challenge">The core challenge</a></li>
+    <li><a href="#agent">The AI agent (SWML / SWAIG)</a></li>
+    <li><a href="#client">The browser client</a></li>
+    <li><a href="#engine">Rules &amp; engine</a></li>
+    <li><a href="#sync">Keeping the board in sync</a></li>
+    <li><a href="#gif">Animated move GIFs</a></li>
+    <li><a href="#persistence">State &amp; persistence</a></li>
+    <li><a href="#decisions">Engineering decisions</a></li>
+    <li><a href="#reference">Endpoint &amp; event reference</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</nav>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="overview">
+  <h2><span class="num">1</span>System overview</h2>
+  <p>There are five subsystems. The browser holds the visible board and the WebRTC media; the SignalWire cloud runs the AI voice turn; the Python app is the single source of truth for the game and hosts both the AI's function endpoints and a small REST API for the board.</p>
+
+  <div class="diagram"><pre>
+                          SignalWire Cloud
+                     ┌───────────────────────────┐
+   speech  ────────▶ │  AI voice agent (the LLM   │
+   (mic)             │  turn) runs the SWML `ai`  │
+                     │  verb + calls SWAIG funcs  │
+                     └────────────┬──────────────┘
+      ▲  audio/video (WebRTC)     │  HTTPS webhook  (SWAIG function calls)
+      │  + `user_event` messages  │  + `user_event` actions come back down
+      │                           ▼
+┌─────┴───────────┐      ┌──────────────────────────────────────────┐
+│  Browser client │      │        Python app  (FastAPI, 1 worker)     │
+│  @signalwire/js │      │                                            │
+│                 │      │  ChessOpponent(AgentBase)  →  /chess/swaig │
+│  • renders board│◀────▶│    make_move / check_board_moves / …       │
+│  • sends clicks │ REST │                                            │
+│  • plays GIFs   │      │  REST:  /chess/new  /chess/move  /state    │
+└─────────────────┘      │  GAMES{} (authority) + SQLite move log     │
+                         │  python-chess ── Stockfish ── Pillow GIFs  │
+                         └──────────────────────────────────────────┘
+  </pre></div>
+
+  <p>The single most important fact about the design: <strong>the browser and the AI never talk directly.</strong> The AI runs in the SignalWire cloud; the browser talks to it only through the media call and cloud-delivered events. Everything that has to be shared — the board — lives in the Python app, and both sides read/write it there. Section&nbsp;2 explains why that shapes the whole system.</p>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="challenge">
+  <h2><span class="num">2</span>The core challenge</h2>
+  <p>The obvious design — "when the user clicks a move, tell the AI" — is not directly possible. The browser SDK (<code>@signalwire/js</code>) can <em>receive</em> application events from the AI (<code>user_event</code>) and can send audio and DTMF, but it has <strong>no channel that injects a fact into the AI's live voice turn</strong>.<a class="ref" href="#r3">3</a> The AI decides what to do based on what it <em>hears</em> and what its <strong>functions</strong> return.<a class="ref" href="#r2">2</a></p>
+
+  <div class="card warn">
+    <h4>So how does a silent, on-screen click reach a voice AI?</h4>
+    <p style="margin-bottom:0">We invert it. Clicks are written to a shared store on the server. The AI is configured to call a "did anything happen?" function <strong>during the natural silences</strong> in the conversation, and that function reports any moves the AI hasn't acknowledged yet. The board is the shared truth; the AI polls it.</p>
+  </div>
+
+  <p>Two SignalWire capabilities make the polling loop work, both set on the SWAIG function results:</p>
+  <ul>
+    <li><code>enable_functions_on_timeout(True)</code> — permits the agent to call functions when the speaker times out (i.e. the user goes quiet) instead of only after speech.<a class="ref" href="#r1">1</a><a class="ref" href="#r2">2</a></li>
+    <li><code>wait_for_user(timeout=6)</code> — tells the agent to yield and wait, arming the next silence timeout.<a class="ref" href="#r1">1</a></li>
+  </ul>
+  <p>The loop is bootstrapped from the very first turn by <code>set_params({"functions_on_speaker_timeout": True})</code> on the agent, so polling is armed before the user has said anything.<a class="ref" href="#r2">2</a></p>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="agent">
+  <h2><span class="num">3</span>The AI agent — SWML &amp; SWAIG</h2>
+  <p>The opponent is a Python class built on the <strong>SignalWire AI Agents SDK</strong>.<a class="ref" href="#r1">1</a> Subclassing <code>AgentBase</code> generates the SWML document (the <code>ai</code> verb, prompt, language, hints) and exposes each <code>@self.tool</code>-decorated method as a <strong>SWAIG function</strong> the LLM can call.<a class="ref" href="#r1">1</a><a class="ref" href="#r2">2</a> The server is an <code>AgentServer</code> that mounts the agent at <code>/chess</code> and also serves the web client and REST API.</p>
+
+  <p class="filelbl">app.py — a voice move</p>
+<pre><code><span class="c-kw">@self</span>.<span class="c-fn">tool</span>(name=<span class="c-str">"make_move"</span>,
+  description=<span class="c-str">"Make the player's chess move; the engine replies automatically."</span>,
+  parameters={<span class="c-str">"type"</span>:<span class="c-str">"object"</span>,<span class="c-str">"properties"</span>:{<span class="c-str">"move"</span>:{<span class="c-str">"type"</span>:<span class="c-str">"string"</span>}},<span class="c-str">"required"</span>:[<span class="c-str">"move"</span>]})
+<span class="c-kw">def</span> <span class="c-fn">make_move</span>(args, raw_data):
+    gid, state = _state_for(raw_data)
+    ok, msg, payload = do_player_then_engine(state, args[<span class="c-str">"move"</span>], source=<span class="c-str">"voice"</span>, game_id=gid)
+    result = <span class="c-fn">SwaigFunctionResult</span>(msg)          <span class="c-com"># the text the AI will speak</span>
+    result.<span class="c-fn">swml_user_event</span>(payload)          <span class="c-com"># push board_update → browser</span>
+    result.<span class="c-fn">enable_functions_on_timeout</span>(<span class="c-kw">True</span>) <span class="c-com"># keep silence-polling armed</span>
+    <span class="c-kw">return</span> result</code></pre>
+
+  <p>A <code>SwaigFunctionResult</code> carries three things back to the cloud AI turn:<a class="ref" href="#r1">1</a> the natural-language <strong>response</strong> the model speaks, and a list of <strong>actions</strong> — here <code>swml_user_event(payload)</code>, which emits a SWML <code>user_event</code> that is delivered to the browser over the call,<a class="ref" href="#r1">1</a><a class="ref" href="#r2">2</a> and <code>enable_functions_on_timeout</code>. The <code>payload</code> is the same <code>board_update</code> dictionary the REST API returns, so the browser has one render path regardless of who moved.</p>
+
+  <h3 class="sub">The polling function</h3>
+  <p><code>check_board_moves</code> is the function the AI calls during silence. It reads any moves recorded since it last looked, marks them acknowledged, and — if there were any — narrates them and pushes a fresh <code>board_update</code>. Either way it re-arms the loop.</p>
+  <p class="filelbl">app.py — catching clicked moves</p>
+<pre><code><span class="c-kw">def</span> <span class="c-fn">check_board_moves</span>(args, raw_data):
+    gid, state = _state_for(raw_data)
+    rows = <span class="c-fn">db_unnarrated</span>(gid)                     <span class="c-com"># moves the AI hasn't voiced yet</span>
+    <span class="c-kw">if not</span> rows:
+        r = <span class="c-fn">SwaigFunctionResult</span>(<span class="c-str">"No new board moves. Stay quiet and keep waiting."</span>)
+        r.<span class="c-fn">enable_functions_on_timeout</span>(<span class="c-kw">True</span>); r.<span class="c-fn">wait_for_user</span>(timeout=<span class="c-num">6</span>)
+        <span class="c-kw">return</span> r
+    <span class="c-fn">db_mark_narrated</span>([row[<span class="c-num">0</span>] <span class="c-kw">for</span> row <span class="c-kw">in</span> rows])
+    r = <span class="c-fn">SwaigFunctionResult</span>(<span class="c-str">f"The player moved: {desc}. Acknowledge it, then wait."</span>)
+    r.<span class="c-fn">swml_user_event</span>(<span class="c-fn">board_payload</span>(state, board))
+    r.<span class="c-fn">enable_functions_on_timeout</span>(<span class="c-kw">True</span>); r.<span class="c-fn">wait_for_user</span>(timeout=<span class="c-num">6</span>)
+    <span class="c-kw">return</span> r</code></pre>
+
+  <p>Other tools follow the same shape: <code>new_game</code>, <code>change_difficulty</code>, <code>resign</code>, <code>get_board</code> (resync/describe), and <code>explain_term</code> (a chess glossary). Each returns a spoken response and, where the board changed, a <code>user_event</code>.</p>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="client">
+  <h2><span class="num">4</span>The browser client</h2>
+  <p>The front end uses the <strong><code>@signalwire/js</code> v4 browser SDK</strong>.<a class="ref" href="#r3">3</a> It fetches a token from the app, creates a client, and dials the agent's address. Note it identifies the game to the AI by passing <code>userVariables</code> on <code>dial()</code> — that <code>game_id</code> flows into every SWAIG call's <code>raw_data</code>, which is how the server-side functions know <em>which</em> game to act on.</p>
+
+  <p class="filelbl">web/app.js — connecting and subscribing</p>
+<pre><code><span class="c-kw">const</span> client = <span class="c-kw">await</span> <span class="c-fn">SignalWire</span>({ token });
+call = <span class="c-kw">await</span> client.<span class="c-fn">dial</span>(destination, {
+  audio: <span class="c-kw">true</span>, video: <span class="c-kw">false</span>, receiveAudio: <span class="c-kw">true</span>, receiveVideo: <span class="c-kw">true</span>,
+  userVariables: { game_id: gameId, interface: <span class="c-str">'chess-web'</span> }   <span class="c-com">// → raw_data server-side</span>
+});
+
+<span class="c-com">// the AI's board_update events arrive here; one render path for voice + click</span>
+call.<span class="c-fn">subscribe</span>(<span class="c-str">'user_event'</span>).<span class="c-fn">subscribe</span>(evt => {
+  <span class="c-kw">const</span> p = evt?.params ?? evt;
+  <span class="c-kw">if</span> (p?.type === <span class="c-str">'board_update'</span>) <span class="c-fn">renderBoard</span>(p);
+});
+call.remoteStream$.<span class="c-fn">subscribe</span>(stream => <span class="c-fn">attachRemoteStream</span>(stream));  <span class="c-com">// Sigmond's avatar</span>
+call.status$.<span class="c-fn">subscribe</span>(st => <span class="c-com">/* connected / disconnected UI */</span>);</code></pre>
+
+  <ul>
+    <li><code>SignalWire({ token })</code> creates the client; <code>client.dial(...)</code> starts the WebRTC call.<a class="ref" href="#r3">3</a></li>
+    <li><code>call.subscribe('user_event')</code> is the receive side of <code>swml_user_event</code> — every board change from the AI lands here.<a class="ref" href="#r3">3</a><a class="ref" href="#r1">1</a></li>
+    <li><code>call.remoteStream$</code> exposes the agent's audio+video (the avatar in the "black window").<a class="ref" href="#r3">3</a></li>
+    <li>A clicked move is sent to the REST API (<span class="pill post">POST</span> <code>/chess/move</code>); the response body is the same <code>board_update</code> shape, so the clicking browser updates instantly without waiting on the AI.</li>
+  </ul>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="engine">
+  <h2><span class="num">5</span>Rules &amp; engine</h2>
+  <p>All chess correctness is delegated to <strong>python-chess</strong>,<a class="ref" href="#r4">4</a> and the opponent's moves come from <strong>Stockfish</strong>.<a class="ref" href="#r5">5</a> The app never trusts a move blindly: text (from voice or a click) is parsed to a legal move, illegal input is rejected with a helpful list, and captures/checks/mate are all derived from the library.</p>
+
+  <p class="filelbl">app.py — the opponent's reply</p>
+<pre><code><span class="c-kw">with</span> chess.engine.SimpleEngine.<span class="c-fn">popen_uci</span>(STOCKFISH_PATH) <span class="c-kw">as</span> eng:
+    eng.<span class="c-fn">configure</span>({<span class="c-str">"Skill Level"</span>: skill})            <span class="c-com"># 0–20, per difficulty</span>
+    <span class="c-kw">return</span> eng.<span class="c-fn">play</span>(board, chess.engine.<span class="c-fn">Limit</span>(time=movetime)).move</code></pre>
+
+  <ul>
+    <li>Move parsing accepts UCI (<code>e2e4</code>), SAN (<code>Nf3</code>, <code>O-O</code>), and loose natural language ("pawn to e4") via <code>board.parse_san</code> / <code>chess.Move.from_uci</code> and a normalizer.<a class="ref" href="#r4">4</a></li>
+    <li>Legality is <code>move in board.legal_moves</code>; state transitions use <code>board.push()</code>; endings use <code>board.is_checkmate()</code> / <code>is_stalemate()</code> / <code>result()</code>.<a class="ref" href="#r4">4</a></li>
+    <li>Difficulty maps to Stockfish's UCI <code>Skill Level</code> option plus a per-level think time — from <em>beginner</em> (level 0, 50&nbsp;ms) to <em>master</em> (level 20, 800&nbsp;ms).<a class="ref" href="#r5">5</a> A random-legal fallback keeps the game playable if the engine binary is missing.</li>
+  </ul>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="sync">
+  <h2><span class="num">6</span>Keeping the board in sync</h2>
+  <p>One function, <code>do_player_then_engine()</code>, is the shared core for both input paths: it applies the human move, gets Stockfish's reply, records both to the store, and returns a <code>board_update</code> payload. The <strong>source</strong> ("voice" vs "click") controls one thing — whether the move is logged as already-narrated.</p>
+
+  <h3 class="sub">A spoken move</h3>
+  <div class="flow">
+    <div class="step">You say <b>"knight f3"</b> → the AI calls <b>make_move</b></div>
+    <div class="arrow">↓</div>
+    <div class="step">server applies your move + Stockfish reply, logs both as <b>narrated</b></div>
+    <div class="arrow">↓</div>
+    <div class="step"><b>swml_user_event(board_update)</b> → browser renders; the AI speaks the reply</div>
+  </div>
+
+  <h3 class="sub">A clicked move</h3>
+  <div class="flow">
+    <div class="step">You drag a piece → <span class="pill post">POST</span> <b>/chess/move</b></div>
+    <div class="arrow">↓</div>
+    <div class="step">server applies your move + Stockfish reply, logs them <b>un-narrated</b> (source=click)</div>
+    <div class="arrow">↓</div>
+    <div class="step">REST response <b>renders your browser immediately</b></div>
+    <div class="arrow">↓ &nbsp;(on the next silence)</div>
+    <div class="step">the AI calls <b>check_board_moves</b>, sees the un-narrated moves, and <b>voices them</b></div>
+  </div>
+
+  <div class="card accent">
+    <h4>Why "narrated" matters</h4>
+    <p style="margin-bottom:0">Voice moves are logged <code>narrated=True</code> because the AI is <em>already</em> speaking them the instant it calls <code>make_move</code>. Click moves are logged <code>narrated=False</code> so the polling function knows they still need to be caught up on out loud. This flag is what stops the AI from either double-announcing or silently missing a move.</p>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="gif">
+  <h2><span class="num">7</span>Animated move GIFs</h2>
+  <p>For each turn the server renders an animated GIF — the piece sliding to its square, captured pieces fading, the castling rook sliding too, and the final position held with a check highlight — and the browser overlays it on the avatar window, then fades back. Rendering is done with <strong>Pillow</strong>,<a class="ref" href="#r6">6</a> drawing Unicode chess glyphs frame by frame and assembling them into a single GIF.</p>
+
+  <p class="filelbl">chessgif.py — assembling the animation</p>
+<pre><code>conv = [f.<span class="c-fn">convert</span>(<span class="c-str">"RGB"</span>).<span class="c-fn">convert</span>(<span class="c-str">"P"</span>, palette=Image.ADAPTIVE, colors=<span class="c-num">48</span>) <span class="c-kw">for</span> f <span class="c-kw">in</span> frames]
+durations = [<span class="c-num">45</span>] * (<span class="c-fn">len</span>(conv)-<span class="c-num">1</span>) + [<span class="c-num">1500</span>]        <span class="c-com"># hold the final position</span>
+conv[<span class="c-num">0</span>].<span class="c-fn">save</span>(buf, format=<span class="c-str">"GIF"</span>, save_all=<span class="c-kw">True</span>, append_images=conv[<span class="c-num">1</span>:],
+             duration=durations, disposal=<span class="c-num">2</span>, optimize=<span class="c-kw">True</span>)  <span class="c-com"># no loop → plays once</span></code></pre>
+
+  <p>The frames use <code>ImageDraw.text(..., anchor="mm", stroke_width=…)</code> for outlined pieces and <code>Image.alpha_composite</code> for the capture fade; the multi-frame GIF is written with <code>save_all</code>, <code>append_images</code>, per-frame <code>duration</code>, and <code>disposal=2</code>.<a class="ref" href="#r6">6</a></p>
+
+  <div class="card good">
+    <h4>Rendering is deliberately <em>off</em> the move path</h4>
+    <p>A full render takes ~400&nbsp;ms. Originally that ran inside <code>make_move</code>/<code>/chess/move</code>, which delayed the <code>board_update</code> event and left the on-screen board lagging behind a spoken move. The fix: a move only records a lightweight render <em>spec</em> (start position + the moves + orientation) and stamps a <code>gif_id</code>. The actual pixels are rendered <strong>lazily on first <span class="pill get">GET</span> <code>/chess/gif/{id}</code></strong> and cached — so the move response, and the event the board depends on, stay instant.</p>
+    <p style="margin-bottom:0">Verified: <code>/chess/move</code> ≈ 0.44&nbsp;s (Stockfish only), first GIF <code>GET</code> ≈ 0.54&nbsp;s (in the browser's own image fetch), cached <code>GET</code> ≈ 4&nbsp;ms.</p>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="persistence">
+  <h2><span class="num">8</span>State &amp; persistence</h2>
+  <p>Two layers of state:</p>
+  <ul>
+    <li><strong>Live authority</strong> — an in-memory <code>GAMES{}</code> dict keyed by <code>game_id</code>, holding the FEN, captured trays, history, and difficulty. Both the AI functions and the REST API mutate this same object, guarded by a lock. This is the truth the board renders from.</li>
+    <li><strong>Move log</strong> — a SQLite database in <strong>WAL mode</strong><a class="ref" href="#r7">7</a> recording every move UUID-stamped with its source (<code>voice</code>/<code>click</code>/<code>engine</code>), SAN/UCI, resulting FEN, capture, and a <code>narrated</code> flag. This is what <code>check_board_moves</code> queries, and what powers <span class="pill get">GET</span> <code>/chess/stats</code>.</li>
+  </ul>
+  <p>The SQLite file is stored on a Docker named volume, so the move log and statistics survive rebuilds and restarts.</p>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="decisions">
+  <h2><span class="num">9</span>Engineering decisions</h2>
+  <table>
+    <tr><th>Decision</th><th>Why</th></tr>
+    <tr><td>Single web worker (<code>--workers 1</code>)</td><td>The in-memory <code>GAMES{}</code> store is the shared authority for the voice and click paths; multiple workers would each hold a divergent copy. One worker keeps a single truth.</td></tr>
+    <tr><td>Poll for clicks instead of pushing</td><td>No browser→live-AI channel exists.<a class="ref" href="#r3">3</a> Polling on silence via <code>functions_on_speaker_timeout</code> is the supported way for the AI to observe out-of-band state.<a class="ref" href="#r2">2</a></td></tr>
+    <tr><td><code>narrated</code> flag on every move</td><td>Distinguishes "the AI already said this" (voice) from "the AI still needs to catch up" (click), preventing double- or non-announcement.</td></tr>
+    <tr><td>Lazy GIF rendering</td><td>Keeps ~400&nbsp;ms of Pillow work off the move/response path so the <code>board_update</code> event — and the on-screen board — never lags the spoken move.</td></tr>
+    <tr><td>SQLite in WAL mode</td><td>Concurrent readers (the poll query) don't block the writer (move recording).<a class="ref" href="#r7">7</a></td></tr>
+    <tr><td>Sync FastAPI endpoints</td><td>The SDK's server is FastAPI/Starlette; sync route handlers run in a threadpool,<a class="ref" href="#r8">8</a> so short blocking work (a Stockfish call) doesn't stall the event loop.</td></tr>
+  </table>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="reference">
+  <h2><span class="num">10</span>Endpoint &amp; event reference</h2>
+
+  <h3 class="sub">SWAIG functions (called by the AI)</h3>
+  <table>
+    <tr><th>Function</th><th>Effect</th><th>Returns</th></tr>
+    <tr><td><code>make_move</code></td><td>Apply spoken move + engine reply</td><td>speech + <code>user_event</code></td></tr>
+    <tr><td><code>check_board_moves</code></td><td>Catch un-narrated clicked moves</td><td>speech + <code>user_event</code> + <code>wait_for_user</code></td></tr>
+    <tr><td><code>new_game</code> / <code>resign</code></td><td>Start / end a game</td><td>speech + <code>user_event</code></td></tr>
+    <tr><td><code>change_difficulty</code></td><td>Set Stockfish skill level</td><td>speech + <code>user_event</code></td></tr>
+    <tr><td><code>get_board</code> / <code>explain_term</code></td><td>Describe position / glossary</td><td>speech (+ <code>user_event</code>)</td></tr>
+  </table>
+
+  <h3 class="sub">REST API (called by the browser)</h3>
+  <table>
+    <tr><th>Route</th><th>Purpose</th></tr>
+    <tr><td><span class="pill post">POST</span> <code>/chess/new</code></td><td>Create a game; returns <code>game_id</code> + initial board</td></tr>
+    <tr><td><span class="pill post">POST</span> <code>/chess/move</code></td><td>Apply a clicked move; engine replies; returns board (+ <code>gif_url</code>)</td></tr>
+    <tr><td><span class="pill get">GET</span> <code>/chess/state</code></td><td>Current board for initial render / resync</td></tr>
+    <tr><td><span class="pill get">GET</span> <code>/chess/gif/{id}</code></td><td>Lazily-rendered move animation (image/gif)</td></tr>
+    <tr><td><span class="pill get">GET</span> <code>/chess/stats</code></td><td>UUID-stamped move stats (voice vs click, results)</td></tr>
+    <tr><td><span class="pill get">GET</span> <code>/get_token</code></td><td>WebRTC token + agent address for <code>dial()</code></td></tr>
+  </table>
+
+  <h3 class="sub">The <code>board_update</code> event / payload</h3>
+  <p>The one shape every path produces — pushed as a <code>user_event</code> by the AI and returned as the REST body by the board API. Key fields: <code>fen</code>, <code>last_move</code>, <code>turn</code>, <code>legal_moves</code>, <code>in_check</code>, <code>game_over</code>, <code>result</code>, <code>captured_by_white/black</code>, <code>material</code>, <code>history</code>, <code>player_color</code>, <code>difficulty</code>, and <code>gif_id</code>/<code>gif_url</code>.</p>
+</section>
+
+<hr>
+
+<!-- ─────────────────────────────────────────── -->
+<section id="refs">
+  <h2><span class="num">11</span>References</h2>
+  <p style="color:var(--muted);font-size:13.5px">Primary sources for the SDKs and functions this demo relies on. Function names are quoted exactly as used in the code above.</p>
+  <ol class="refs">
+    <li id="r1" class="callback"><strong>SignalWire AI Agents SDK (Python)</strong> — the <code>AgentBase</code> agent framework and <code>SwaigFunctionResult</code> result builder. <a href="https://github.com/signalwire/signalwire-agents">github.com/signalwire/signalwire-agents</a> · <a href="https://pypi.org/project/signalwire-agents/">pypi.org/project/signalwire-agents</a>
+      <span class="fns">AgentBase · @self.tool · SwaigFunctionResult · .swml_user_event() · .enable_functions_on_timeout() · .wait_for_user() · AgentServer · serve_static_files()</span></li>
+    <li id="r2" class="callback"><strong>SWML &amp; SWAIG — SignalWire Markup Language / AI Gateway</strong> — the <code>ai</code> verb, SWAIG functions, the <code>user_event</code> action, and speaker-timeout function calling. <a href="https://developer.signalwire.com/swml/">developer.signalwire.com/swml</a>
+      <span class="fns">ai verb · SWAIG functions · params.functions_on_speaker_timeout · user_event action</span></li>
+    <li id="r3" class="callback"><strong>SignalWire Browser SDK — <code>@signalwire/js</code> (v4)</strong> — the WebRTC client used by the web front end. <a href="https://developer.signalwire.com/sdks/reference/browser-sdk/">developer.signalwire.com/sdks/reference/browser-sdk</a> · <a href="https://www.npmjs.com/package/@signalwire/js">npmjs.com/package/@signalwire/js</a>
+      <span class="fns">SignalWire() · client.dial({ audio, video, receiveAudio, receiveVideo, userVariables }) · call.subscribe('user_event') · call.remoteStream$ · call.status$ · client.isConnected$</span></li>
+    <li id="r4" class="callback"><strong>python-chess</strong> — move generation, parsing, validation, and the UCI engine wrapper. <a href="https://python-chess.readthedocs.io/">python-chess.readthedocs.io</a>
+      <span class="fns">chess.Board · board.legal_moves · board.parse_san · chess.Move.from_uci · board.push · board.is_capture / is_en_passant / is_castling / is_check · board.is_checkmate / result · board.piece_map · chess.engine.SimpleEngine.popen_uci · engine.configure · engine.play · chess.engine.Limit</span></li>
+    <li id="r5" class="callback"><strong>Stockfish</strong> — the open-source UCI chess engine used as the opponent. <a href="https://stockfishchess.org/">stockfishchess.org</a> · <a href="https://github.com/official-stockfish/Stockfish">github.com/official-stockfish/Stockfish</a>
+      <span class="fns">UCI protocol · "Skill Level" option (0–20)</span></li>
+    <li id="r6" class="callback"><strong>Pillow (PIL fork)</strong> — image drawing and animated-GIF assembly. <a href="https://pillow.readthedocs.io/">pillow.readthedocs.io</a> · <a href="https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#gif">GIF format handbook</a>
+      <span class="fns">Image.new · ImageDraw.text(anchor, stroke_width, stroke_fill) · Image.alpha_composite · Image.convert('P', palette=ADAPTIVE) · Image.save(save_all, append_images, duration, disposal, optimize)</span></li>
+    <li id="r7" class="callback"><strong>SQLite — Write-Ahead Logging</strong> — concurrent read/write for the move log. <a href="https://www.sqlite.org/wal.html">sqlite.org/wal.html</a>
+      <span class="fns">PRAGMA journal_mode=WAL</span></li>
+    <li id="r8" class="callback"><strong>FastAPI / Starlette</strong> — the ASGI framework the Agents SDK server runs on; sync endpoints execute in a threadpool. <a href="https://fastapi.tiangolo.com/async/">fastapi.tiangolo.com/async</a>
+      <span class="fns">sync def path operations → run in threadpool</span></li>
+  </ol>
+</section>
+
+<footer>
+  SignalWire Chess — architecture write-up. Served from the demo's own web root, alongside the live game.
+</footer>
+
+</div>
+<script>
+(function(){
+  const root=document.documentElement,btn=document.getElementById('themeBtn');
+  function sync(){btn.querySelector('.material-symbols-outlined').textContent=(root.getAttribute('data-theme')==='dark'?'light_mode':'dark_mode');}
+  btn.addEventListener('click',()=>{const n=(root.getAttribute('data-theme')==='dark')?'light':'dark';root.setAttribute('data-theme',n);localStorage.setItem('chessTheme',n);sync();});
+  sync();
+})();
+</script>
+</body>
+</html>
