@@ -191,6 +191,8 @@ select:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(
 .segmented .seg.active{background:var(--sw-blue);color:#fff}
 .segmented .seg:not(.active):hover{color:var(--fg)}
 .modehint{color:var(--muted);font-size:12px;margin-top:7px}
+.checkrow{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:14px;color:var(--fg)}
+.checkrow input[type=checkbox]{width:17px;height:17px;accent-color:var(--sw-blue);cursor:pointer;margin:0}
 .history{font-family:var(--mono);font-size:12.5px;max-height:210px;overflow:auto}
 .history .row{display:flex;gap:10px;padding:3px 0;border-bottom:1px solid var(--border)}
 .history .n{color:var(--muted);min-width:2.5ch;text-align:right}
@@ -328,6 +330,18 @@ select:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(
               </div>
             </div>
           </div>
+          <div class="field">
+            <label>Sigmond's voice</label>
+            <select id="voiceSelect"><option>Loading voices…</option></select>
+            <div class="modehint">Pick the AI's voice. Applied when you Connect &amp; Play.</div>
+          </div>
+          <div class="field">
+            <label class="checkrow">
+              <input type="checkbox" id="recordToggle" checked>
+              <span>Record this session's audio</span>
+            </label>
+            <div class="modehint">When on, the call's audio is recorded (MP3). Applied when you Connect &amp; Play.</div>
+          </div>
         </div>
       </div>
 
@@ -370,6 +384,6 @@ select:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(
 })();
 </script>
 <script src="signalwire.js"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

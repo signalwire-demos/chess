@@ -12,6 +12,8 @@ let board = null;          // last board_update payload
 let selected = null;       // selected square (algebraic) awaiting a target
 let isMuted = false, teardownDone = false, busy = false;
 let mode = (localStorage.getItem('chessMode') === 'learn') ? 'learn' : 'game';  // 'game' | 'learn'
+let selectedVoice = localStorage.getItem('chessVoice') || '';  // Sigmond's TTS voice (applied at Connect)
+let recordAudio = localStorage.getItem('chessRecord') !== 'false';  // record session audio (default on)
 
 // U+FE0E (text variation selector) forces monochrome TEXT rendering — without it,
 // mobile browsers (iOS/Android) draw these as emoji, which resize squares and can
@@ -30,6 +32,8 @@ const connectBtn = $('connectBtn'), hangupBtn = $('hangupBtn'), muteBtn = $('mut
 const newBtn = $('newBtn'), resignBtn = $('resignBtn');
 const difficultySel = $('difficulty'), colorSel = $('color');
 const modeToggle = $('modeToggle'), modeHint = $('modeHint');
+const voiceSel = $('voiceSelect');
+const recordToggle = $('recordToggle');
 const evalbar = $('evalbar'), evalfill = $('evalfill'), arrows = $('arrows'), evalChip = $('evalChip'), evalVal = $('evalVal');
 const connChip = $('connChip');
 const nameChip = $('nameChip'), nameLabel = $('nameLabel'), nameAvatar = $('nameAvatar');
@@ -366,7 +370,11 @@ async function ensureMicrophone() {
 }
 
 async function fetchGuestToken() {
-  const r = await fetch('/get_token');
+  const v = (typeof selectedVoice === 'string' && selectedVoice) ? selectedVoice : '';
+  const qs = new URLSearchParams();
+  if (v) qs.set('voice', v);
+  qs.set('record', recordAudio ? 'true' : 'false');
+  const r = await fetch('/get_token?' + qs.toString());
   let data = await r.json();
   if (Array.isArray(data)) data = data[0] || {};
   if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
@@ -573,6 +581,57 @@ modeToggle.addEventListener('click', e => {
   if (board) updateAnalysis(board); else if (mode !== 'learn') hideAnalysis();
 });
 applyMode();
+
+// ---- voice selection (Sigmond's TTS voice) — grouped by vendor, applied at Connect ----
+async function loadVoices() {
+  if (!voiceSel) return;
+  try {
+    const [inw, el] = await Promise.all([
+      fetch('inworld_voices.json').then(r => r.json()),
+      fetch('elevenlabs_voices.json').then(r => r.json()),
+    ]);
+    const groups = [['Inworld', inw], ['ElevenLabs', el]];
+    voiceSel.innerHTML = '';
+    for (const [label, list] of groups) {
+      if (!Array.isArray(list) || !list.length) continue;
+      const og = document.createElement('optgroup'); og.label = label;
+      for (const v of list) {
+        const o = document.createElement('option');
+        o.value = v.voiceId; o.textContent = v.displayName || v.voiceId;
+        if (v.description) o.title = v.description;
+        og.appendChild(o);
+      }
+      voiceSel.appendChild(og);
+    }
+    // Restore saved choice, else default to Sigmond's classic voice if present.
+    const opts = [...voiceSel.options].map(o => o.value);
+    if (selectedVoice && opts.includes(selectedVoice)) {
+      voiceSel.value = selectedVoice;
+    } else if (opts.includes('elevenlabs.adam')) {
+      voiceSel.value = 'elevenlabs.adam'; selectedVoice = 'elevenlabs.adam';
+    } else if (opts.length) {
+      voiceSel.value = opts[0]; selectedVoice = opts[0];
+    }
+  } catch (e) {
+    logEvent('voice load error', { error: e.message });
+  }
+}
+if (voiceSel) {
+  voiceSel.addEventListener('change', () => {
+    selectedVoice = voiceSel.value || '';
+    localStorage.setItem('chessVoice', selectedVoice);
+  });
+  loadVoices();
+}
+
+// ---- record-session-audio toggle (applied at Connect) ----
+if (recordToggle) {
+  recordToggle.checked = recordAudio;
+  recordToggle.addEventListener('change', () => {
+    recordAudio = recordToggle.checked;
+    localStorage.setItem('chessRecord', recordAudio ? 'true' : 'false');
+  });
+}
 
 // ---- name capture ----
 nameChip.addEventListener('click', openNameDialog);
