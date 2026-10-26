@@ -241,6 +241,23 @@ select:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(
 @media(max-width:360px){
   .btn-filled .lbl{display:inline}        /* keep the primary CTA labeled even when tiny */
 }
+
+/* Build footer: names the commit and SDK this instance is running. Each half
+   hides on its own when unknown, so a visitor never sees a bare label. */
+.build-footer{display:flex;justify-content:center;align-items:center;gap:1rem;
+  padding:14px 12px 18px;font-size:.78rem;color:var(--muted)}
+/* Nothing known at all: hide the row rather than leave an empty strip. Unlike
+   the other demos this footer carries no theme picker, so there is nothing
+   left to keep visible. */
+.build-footer.hidden{display:none}
+.build-pair{display:inline-flex;align-items:center;gap:.4rem}
+.build-pair.hidden{display:none}
+.build-label{text-transform:uppercase;letter-spacing:.06em;opacity:.75}
+.build-commit{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--link);text-decoration:none;border-bottom:1px dotted var(--border-strong)}
+.build-commit:hover{color:var(--link-h);border-bottom-color:var(--link-h)}
+/* Monospace like the commit, without the underline: not a link. */
+.build-sdk{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--link)}
 </style>
 </head>
 <body>
@@ -383,7 +400,30 @@ select:focus{outline:none;border-color:var(--sw-blue);box-shadow:0 0 0 3px rgba(
   sync();
 })();
 </script>
-<script src="signalwire.js"></script>
-<script src="app.js?v=15"></script>
+
+<!-- Build footer. Populated from /api/version at load; each half hides if its
+     value cannot be determined, and the whole row hides if neither can. -->
+<footer class="build-footer hidden" id="buildFooter">
+  <span class="build-pair hidden" id="buildCommitPair">
+    <span class="build-label">Build</span>
+    <a id="buildCommit" class="build-commit" href="#" target="_blank" rel="noopener noreferrer"></a>
+  </span>
+  <span class="build-pair hidden" id="buildSdkPair">
+    <span class="build-label">SDK</span>
+    <span id="buildSdk" class="build-sdk"></span>
+  </span>
+  <!-- The browser SDK is a client-side fact: read from what this page actually
+       loaded, not from the server, which cannot know. -->
+  <span class="build-pair hidden" id="buildWebSdkPair">
+    <span class="build-label">Web SDK</span>
+    <span id="buildWebSdk" class="build-sdk"></span>
+  </span>
+</footer>
+
+<!-- Browser SDK, vendored. The version is in the FILENAME on purpose: it makes
+     an upgrade visible in a diff and lets the footer name what the page loaded
+     without trusting a global. Same convention as testbot. -->
+<script src="signalwire-4.0.0-rc.5.js"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

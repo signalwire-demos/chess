@@ -46,6 +46,105 @@ import chess.engine
 STOCKFISH_PATH = os.environ.get("STOCKFISH_PATH", "/usr/games/stockfish")
 START_FEN = chess.STARTING_FEN
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# What this instance is actually running, for the page footer
+#
+# Two separate questions, because they fail separately:
+#
+#   commit   .git is excluded from the build context (see .dockerignore, which
+#            exists because a live PAT once ended up in an image layer), so the
+#            Dockerfile writes a COMMIT file from a build arg. GIT_REV in the
+#            environment wins over it, for a runtime override.
+#   sdk      requirements.txt pins a FLOOR (signalwire-sdk>=3.7.4), so the
+#            installed version is whatever pip resolved on build day. Ask the
+#            imported module before the distribution metadata: they disagree on
+#            an in-place install, where metadata is written once and never
+#            rewritten, and the module is what the process actually loaded.
+#
+# Both are resolved once per process - a deploy replaces the process, so
+# neither can go stale without the thing that produced it being replaced too.
+# Both return empty rather than guessing: the footer hides a half it cannot
+# name, because "Build unknown" is worse than no footer.
+# ─────────────────────────────────────────────────────────────────────────────
+_COMMIT_CACHE = None
+_SDK_CACHE = None
+
+
+def resolve_commit():
+    """Return {commit, short, source, repo} for whatever this process runs."""
+    global _COMMIT_CACHE
+    if _COMMIT_CACHE is not None:
+        return _COMMIT_CACHE
+
+    here = Path(__file__).parent
+    found, source = "", "unknown"
+
+    for var in ("GIT_REV", "GIT_COMMIT", "SOURCE_VERSION", "COMMIT_SHA"):
+        value = (os.environ.get(var) or "").strip()
+        if value:
+            found, source = value, f"env:{var}"
+            break
+
+    if not found:
+        try:
+            found = (here / "COMMIT").read_text(encoding="utf-8").strip()
+            source = "file:COMMIT"
+        except OSError:
+            pass
+
+    if not found:
+        try:
+            import subprocess
+            found = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=here, capture_output=True,
+                text=True, timeout=5,
+            ).stdout.strip()
+            if found:
+                source = "git"
+        except Exception:
+            pass
+
+    # Only something SHA-shaped reaches the page, so a stray file or a mis-set
+    # variable cannot put arbitrary text into the footer.
+    if not re.fullmatch(r"[0-9a-fA-F]{7,40}", found or ""):
+        found, source = "", "unknown"
+
+    _COMMIT_CACHE = {
+        "commit": found,
+        "short": found[:7],
+        "source": source,
+        "repo": "https://github.com/Len-PGH/signalwire_chess",
+    }
+    return _COMMIT_CACHE
+
+
+def resolve_sdk_version():
+    """Return the running signalwire-sdk version, or '' if it cannot be read."""
+    global _SDK_CACHE
+    if _SDK_CACHE is not None:
+        return _SDK_CACHE
+
+    version = ""
+    try:
+        import signalwire
+        version = (getattr(signalwire, "__version__", "") or "").strip()
+    except Exception:
+        pass
+
+    if not version:
+        try:
+            from importlib.metadata import version as dist_version
+            version = (dist_version("signalwire-sdk") or "").strip()
+        except Exception:
+            pass
+
+    if not re.fullmatch(r"[0-9][0-9A-Za-z.\-+]{0,31}", version or ""):
+        version = ""
+
+    _SDK_CACHE = version
+    return _SDK_CACHE
+
 # level -> (Stockfish "Skill Level" 0-20, think seconds)
 DIFFICULTY = {
     "beginner": (0, 0.05),
@@ -1386,6 +1485,11 @@ def create_server(port=None):
             "resource_id": swml_handler_info["id"],
             "dashboard_url": f"https://{sw_host}/neon/resources/{swml_handler_info['id']}/edit?t=addresses" if sw_host and swml_handler_info["id"] else None
         }
+
+    @server.app.get('/api/version')
+    def api_version():
+        """Which commit and SDK version this instance is actually running."""
+        return {**resolve_commit(), "sdk": resolve_sdk_version()}
 
     # ── Interactive-board REST API (shares the GAMES store with the voice path) ──
     @server.app.post('/chess/new')

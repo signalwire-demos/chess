@@ -643,3 +643,69 @@ if (!getPlayerName()) openNameDialog();
 
 // initial empty board so the page isn't blank before connecting
 newGame().catch(e => logEvent('init error', { error: e.message }));
+
+// Name the commit and SDK version this instance is running, in the page footer.
+//
+// Fetched rather than baked into the page, so it follows a deploy without the
+// markup being rebuilt. Each half appears only if its own value came back:
+// .git is excluded from the image, so the commit can be unknown while the SDK
+// is known, and a source checkout can be the reverse. A visitor seeing a bare
+// "Build" label is worse than no footer, so the row hides when neither is known.
+function resolveWebSdkVersion() {
+    // The bundle exports its own version; prefer it.
+    try {
+        const v = window.SignalWire && window.SignalWire.version;
+        if (typeof v === 'string' && /^[0-9][0-9A-Za-z.\-+]{0,31}$/.test(v)) return v;
+    } catch (e) { /* no global: fall through to the filename */ }
+
+    // Fallback: the script tag names the bundle, e.g. signalwire-4.0.0-rc.5.js
+    const tag = document.querySelector('script[src*="signalwire-"]');
+    const m = tag && tag.getAttribute('src').match(/signalwire-([0-9][0-9A-Za-z.\-+]*)\.js/);
+    return (m && m[1]) || '';
+}
+
+(async function showBuildVersion() {
+    const footer = document.getElementById('buildFooter');
+    const link = document.getElementById('buildCommit');
+    const commitPair = document.getElementById('buildCommitPair');
+    const sdkPair = document.getElementById('buildSdkPair');
+    const sdk = document.getElementById('buildSdk');
+    const webSdkPair = document.getElementById('buildWebSdkPair');
+    const webSdk = document.getElementById('buildWebSdk');
+    if (!footer) return;
+    try {
+        const resp = await fetch('/api/version', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const v = await resp.json();
+        if (!v) return;
+
+        if (v.short && link) {
+            link.textContent = v.short;
+            link.title = `${v.commit} (via ${v.source})`;
+            if (v.repo && v.commit) link.href = `${v.repo}/commit/${v.commit}`;
+            if (commitPair) commitPair.classList.remove('hidden');
+        }
+        if (v.sdk && sdk) {
+            sdk.textContent = v.sdk;
+            sdk.title = `signalwire-sdk ${v.sdk}`;
+            if (sdkPair) sdkPair.classList.remove('hidden');
+        }
+
+        // The browser SDK is whatever THIS page loaded, so ask the page. The
+        // bundle's own export is the truth; the versioned filename is the
+        // fallback, since a bundle that failed to load leaves no global but
+        // the script tag still names what was meant to be there.
+        const web = resolveWebSdkVersion();
+        if (web && webSdk) {
+            webSdk.textContent = web;
+            webSdk.title = `@signalwire/js ${web}`;
+            if (webSdkPair) webSdkPair.classList.remove('hidden');
+        }
+
+        if (!v.short && !v.sdk && !web) return;
+        footer.classList.remove('hidden');
+    } catch (e) {
+        // A demo must not fail to load because it could not name its build.
+        console.warn('Build version unavailable:', e);
+    }
+})();

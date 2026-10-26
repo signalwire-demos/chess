@@ -17,13 +17,20 @@ COPY . .
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# .git is excluded from the build context (see .dockerignore), so the commit
+# cannot be read in the image. It is passed in and written to a file the app
+# reads; GIT_REV in the environment takes precedence at runtime. Unset simply
+# means the footer hides its build half.
+ARG GIT_COMMIT=""
+RUN if [ -n "$GIT_COMMIT" ]; then printf '%s' "$GIT_COMMIT" > COMMIT; fi
+
 ENV PORT=5000 HOME=/tmp STOCKFISH_PATH=/usr/games/stockfish CHESS_DB=/data/chess.db
 EXPOSE 5000
 
 # Persistent SQLite move log lives in /data (a named volume). Create it owned by
 # appuser BEFORE the volume is declared so the volume inherits that ownership on
 # first mount — the non-root process must be able to write the DB.
-RUN useradd -r -s /bin/false appuser \
+RUN useradd -r -m -s /bin/false appuser \
  && mkdir -p /data \
  && chown appuser /data
 VOLUME /data
